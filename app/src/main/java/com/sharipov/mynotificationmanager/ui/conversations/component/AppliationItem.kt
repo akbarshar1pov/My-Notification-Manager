@@ -1,6 +1,7 @@
 package com.sharipov.mynotificationmanager.ui.conversations.component
 
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -18,7 +19,7 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 fun ApplicationItem(packageName: String, modifier: Modifier) {
 
     val context = LocalContext.current
-
+    Log.d("AppName", packageName)
     // get app icon
     val appIconDrawable = try {
         context.packageManager.getApplicationIcon(packageName)
@@ -34,7 +35,6 @@ fun ApplicationItem(packageName: String, modifier: Modifier) {
         ).toString()
     } catch (e: PackageManager.NameNotFoundException) {
         // handle the error, e.g. show a placeholder name
-        // ...
         "Unknown"
     }
 
