@@ -32,8 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -118,6 +120,7 @@ fun ExportImportModalBottomSheetContent(context: Context, homeViewModel: HomeVie
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
+    val coroutineScope = rememberCoroutineScope()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember { mutableStateOf("") }
     var importStatus by remember{mutableStateOf(Pair(true, ""))}
@@ -155,8 +158,10 @@ fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
                 enabled = selectedFileUri != null,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    importStatus = importDatabase(context, homeViewModel, selectedFileUri)
-                    importButtonStatus = !importStatus.first
+                    coroutineScope.launch {
+                        importStatus = importDatabase(context, homeViewModel, selectedFileUri)
+                        importButtonStatus = !importStatus.first
+                    }
                 }
             ) {
                 Text(text = stringResource(id = R.string.import_), color = Color.White)
@@ -189,6 +194,7 @@ fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
 @SuppressLint("IntentReset")
 @Composable
 fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
+    val coroutineScope = rememberCoroutineScope()
     var exportButtonStatus by remember{mutableStateOf(true)}
     var exportStatus by remember{mutableStateOf(Pair(true, ""))}
 
@@ -204,8 +210,10 @@ fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
                     .fillMaxWidth()
                     .padding(top = 16.dp, bottom = 16.dp),
                 onClick = {
-                    exportStatus = exportDatabase(context, homeViewModel)
-                    exportButtonStatus = !exportStatus.first
+                    coroutineScope.launch {
+                        exportStatus = exportDatabase(context, homeViewModel)
+                        exportButtonStatus = !exportStatus.first
+                    }
                 }
             ) {
                 Text(text = stringResource(id = R.string.export), color = Color.White)

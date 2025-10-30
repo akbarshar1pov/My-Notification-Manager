@@ -1,7 +1,6 @@
 package com.sharipov.mynotificationmanager.services
 
 import android.app.Notification
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +15,8 @@ import com.sharipov.mynotificationmanager.data.PreferencesManager
 import com.sharipov.mynotificationmanager.model.NotificationEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 
@@ -23,18 +24,18 @@ class MyNotificationListenerService : NotificationListenerService() {
 
     private lateinit var notificationDao: NotificationDao
     private lateinit var excludedAppDao: ExcludedAppDao
-    private lateinit var context: Context
+    private lateinit var database: AppDatabase
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     override fun onCreate() {
         super.onCreate()
-        val database = Room.databaseBuilder(
+        database = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
             "notification.db"
         ).build()
         notificationDao = database.notificationDao()
         excludedAppDao = database.excludedAppDao()
-        context = applicationContext
-        database.close()
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -42,10 +43,9 @@ class MyNotificationListenerService : NotificationListenerService() {
         try {
             // get package Name
             val packageName = sbn.packageName
-            val coroutineScope = CoroutineScope(Dispatchers.IO)
-            coroutineScope.launch {
+            serviceScope.launch {
                 val excludedApp = excludedAppDao.getExcludedAppByPackageName(packageName)
-                if(PreferencesManager.getBlockNotification(context)) {
+                if(PreferencesManager.getBlockNotification(applicationContext)) {
                     cancelNotification(sbn.key)
                 }
                 else if (excludedApp != null) {
@@ -54,7 +54,7 @@ class MyNotificationListenerService : NotificationListenerService() {
                     }
                     if (excludedApp.isExcluded) {
                         // get application name
-                        val pm = context.packageManager
+                        val pm = applicationContext.packageManager
                         val appName =
                             pm.getApplicationLabel(
                                 pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
@@ -90,6 +90,12 @@ class MyNotificationListenerService : NotificationListenerService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+        database.close()
     }
 }
 

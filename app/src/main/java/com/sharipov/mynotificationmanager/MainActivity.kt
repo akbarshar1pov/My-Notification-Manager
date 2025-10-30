@@ -111,11 +111,10 @@ class MainActivity : ComponentActivity() {
                 "Download successfully. Restarting app in 5 seconds...",
                 Toast.LENGTH_LONG
             ).show()
-            val job = lifecycleScope.launch {
+            lifecycleScope.launch {
                 delay(5.seconds)
                 appUpdateManager.completeUpdate()
             }
-            job.cancel()
         }
     }
 

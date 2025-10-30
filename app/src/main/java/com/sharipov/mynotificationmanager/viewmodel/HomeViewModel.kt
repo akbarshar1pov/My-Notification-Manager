@@ -1,13 +1,12 @@
 package com.sharipov.mynotificationmanager.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.sharipov.mynotificationmanager.data.repository.NotificationRepository
 import com.sharipov.mynotificationmanager.model.Application
 import com.sharipov.mynotificationmanager.model.NotificationEntity
 import com.sharipov.mynotificationmanager.model.UserGroup
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,8 +37,6 @@ class HomeViewModel
 @Inject constructor(
     private val notificationRepository: NotificationRepository
 ) : ViewModel(), HomeViewModelAbstract {
-
-    private val ioScope = CoroutineScope(Dispatchers.IO)
 
     override val notificationListFlow: Flow<List<NotificationEntity>> =
         notificationRepository.getAllFlow()
@@ -78,31 +75,31 @@ class HomeViewModel
         notificationRepository.getNotificationsByAppNames(packageName)
 
     override fun addNotification(notification: NotificationEntity) {
-        ioScope.launch {
+        viewModelScope.launch {
             notificationRepository.insert(notification)
         }
     }
 
     override fun upgradeNotification(notification: NotificationEntity) {
-        ioScope.launch {
+        viewModelScope.launch {
             notificationRepository.upgrade(notification)
         }
     }
 
     override fun deleteNotification(notification: NotificationEntity) {
-        ioScope.launch {
+        viewModelScope.launch {
             notificationRepository.delete(notification)
         }
     }
 
     override fun deleteNotificationsForUser(group: String, user: String, packageName: String) {
-        ioScope.launch {
+        viewModelScope.launch {
             notificationRepository.deleteNotificationsForUser(group, user, packageName)
         }
     }
 
     override fun deleteExpiredNotification(autoDeleteTimeout: Long) {
-        ioScope.launch {
+        viewModelScope.launch {
             notificationRepository.deleteExpiredNotification(autoDeleteTimeout)
         }
     }

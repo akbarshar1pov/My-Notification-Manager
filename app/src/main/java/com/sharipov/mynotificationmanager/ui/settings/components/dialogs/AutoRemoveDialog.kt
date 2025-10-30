@@ -17,11 +17,14 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -30,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.model.AppSettingsEntity
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
-import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,10 +77,10 @@ fun AutoRemoveDialogContent(
         stringResource(R.string.one_month)
     )
 
-    var selectedTime = stringResource(R.string.never)
-    var selectedTimeLong = 0L
+    var selectedTime by remember { mutableStateOf(context.getString(R.string.never)) }
+    var selectedTimeLong by remember { mutableStateOf(0L) }
 
-    runBlocking {
+    LaunchedEffect(Unit) {
         val appSettings = settingsViewModel.getAppSettings()
         if (appSettings != null) {
             selectedTime = appSettings.autoDeleteTimeoutString
@@ -100,6 +102,7 @@ fun AutoRemoveDialogContent(
     }
 
     var selectedOption by remember { mutableStateOf(selectedTime) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -148,7 +151,7 @@ fun AutoRemoveDialogContent(
                     else -> 0L
                 }
 
-                runBlocking {
+                coroutineScope.launch {
                     settingsViewModel.updateSettings(AppSettingsEntity(0, selectedTimeLong, selectedOption))
                 }
 

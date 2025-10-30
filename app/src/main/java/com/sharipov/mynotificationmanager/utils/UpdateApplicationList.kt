@@ -2,35 +2,36 @@ package com.sharipov.mynotificationmanager.utils
 
 import android.content.pm.PackageManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.room.Transaction
 import com.sharipov.mynotificationmanager.model.ExcludedAppEntity
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 @Composable
 fun UpdateApplicationList(settingsViewModel: SettingsViewModel) {
     val context = LocalContext.current
     val packageManager = context.packageManager
-    val apps = packageManager.getInstalledPackages(0)
-    val appListFromSource = mutableListOf<ExcludedAppEntity>()
 
-    for (i in apps) {
-        val appName =
-            packageManager.getApplicationLabel(
-                packageManager.getApplicationInfo(i.packageName, PackageManager.GET_META_DATA)
-            ).toString()
+    LaunchedEffect(Unit) {
+        val apps = packageManager.getInstalledPackages(0)
+        val appListFromSource = mutableListOf<ExcludedAppEntity>()
 
-        val app = ExcludedAppEntity(
-            packageName = i.packageName.toString(),
-            appName = appName,
-            isExcluded = true,
-            isBlocked = false
-        )
-        appListFromSource.add(app)
-    }
-    runBlocking {
+        for (i in apps) {
+            val appName =
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(i.packageName, PackageManager.GET_META_DATA)
+                ).toString()
+
+            val app = ExcludedAppEntity(
+                packageName = i.packageName.toString(),
+                appName = appName,
+                isExcluded = true,
+                isBlocked = false
+            )
+            appListFromSource.add(app)
+        }
         syncAppList(appListFromSource, settingsViewModel)
     }
 }

@@ -12,8 +12,9 @@ import com.google.gson.reflect.TypeToken
 import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.model.NotificationEntity
 import com.sharipov.mynotificationmanager.viewmodel.HomeViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -21,7 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-fun exportDatabase(context: Context, homeViewModel: HomeViewModel): Pair<Boolean, String> {
+suspend fun exportDatabase(context: Context, homeViewModel: HomeViewModel): Pair<Boolean, String> = withContext(Dispatchers.IO) {
     if (isExternalStorageWritable()) {
         val exportDir = File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOCUMENTS)
         val notificationManagerDir = File(exportDir, "Notification manager")
@@ -33,17 +34,19 @@ fun exportDatabase(context: Context, homeViewModel: HomeViewModel): Pair<Boolean
         val exportFile = File(backupDir, timeStamp + "_backup.json")
 
         val gson = Gson()
-        val notifications = runBlocking {
-            homeViewModel.notificationListFlow.first()
-        }
+        val notifications = homeViewModel.notificationListFlow.first()
         val jsonString = gson.toJson(notifications)
 
         exportFile.writeText(jsonString)
-        Toast.makeText(context, R.string.data_backup_save_in, Toast.LENGTH_SHORT).show()
-        return Pair(true, timeStamp)
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, R.string.data_backup_save_in, Toast.LENGTH_SHORT).show()
+        }
+        Pair(true, timeStamp)
     } else {
-        Toast.makeText(context, R.string.external_storage_not_available, Toast.LENGTH_SHORT).show()
-        return Pair(false, "")
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, R.string.external_storage_not_available, Toast.LENGTH_SHORT).show()
+        }
+        Pair(false, "")
     }
 }
 
@@ -53,7 +56,7 @@ private fun isExternalStorageWritable(): Boolean {
 }
 
 
-fun importDatabase(context: Context, homeViewModel: HomeViewModel, uri: Uri?): Pair<Boolean, String> {
+suspend fun importDatabase(context: Context, homeViewModel: HomeViewModel, uri: Uri?): Pair<Boolean, String> = withContext(Dispatchers.IO) {
     val contentResolver: ContentResolver = context.contentResolver
     try {
         val inputStream = uri?.let { contentResolver.openInputStream(it) }
@@ -65,16 +68,14 @@ fun importDatabase(context: Context, homeViewModel: HomeViewModel, uri: Uri?): P
         val listType = object : TypeToken<List<NotificationEntity>>() {}.type
         val notifications: List<NotificationEntity> = gson.fromJson(jsonString, listType)
 
-        runBlocking {
-            for (i in notifications) {
-                homeViewModel.addNotification(i)
-            }
+        for (i in notifications) {
+            homeViewModel.addNotification(i)
         }
-        val status =  context.getString(R.string.notification_imported)
-        return Pair(true, status)
+        val status = context.getString(R.string.notification_imported)
+        Pair(true, status)
     } catch (e: Exception) {
-        val status =  context.getString(R.string.error_the_file_is_corrupted)
-        return Pair(false, status)
+        val status = context.getString(R.string.error_the_file_is_corrupted)
+        Pair(false, status)
     }
 }
 
