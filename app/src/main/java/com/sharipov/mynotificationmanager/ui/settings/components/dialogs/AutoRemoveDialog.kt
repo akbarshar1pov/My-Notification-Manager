@@ -17,9 +17,11 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.model.AppSettingsEntity
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +46,7 @@ fun autoRemoveDialog(
     AlertDialog(
         onDismissRequest = {
             openDialog.value = false
+            onDismiss()
         }
     ) {
         Surface(
@@ -65,6 +68,7 @@ fun AutoRemoveDialogContent(
     onTimeSelected: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val timeOptions = listOf(
         stringResource(R.string.never),
@@ -75,14 +79,14 @@ fun AutoRemoveDialogContent(
         stringResource(R.string.one_month)
     )
 
-    var selectedTime = stringResource(R.string.never)
-    var selectedTimeLong = 0L
+    val neverText = stringResource(R.string.never)
+    var selectedOption by remember { mutableStateOf(neverText) }
 
-    runBlocking {
+    LaunchedEffect(Unit) {
         val appSettings = settingsViewModel.getAppSettings()
         if (appSettings != null) {
-            selectedTime = appSettings.autoDeleteTimeoutString
-            selectedTimeLong = appSettings.autoDeleteTimeoutLong
+            val selectedTimeLong = appSettings.autoDeleteTimeoutLong
+            var selectedTime = appSettings.autoDeleteTimeoutString
             if (selectedTime !in timeOptions) {
                 selectedTime = when (selectedTimeLong) {
                     0L -> context.getString(R.string.never)
@@ -94,12 +98,11 @@ fun AutoRemoveDialogContent(
                     else -> context.getString(R.string.never)
                 }
             }
+            selectedOption = selectedTime
         } else {
-            settingsViewModel.saveAppSettings(AppSettingsEntity(0, selectedTimeLong, selectedTime))
+            settingsViewModel.saveAppSettings(AppSettingsEntity(0, 0L, neverText))
         }
     }
-
-    var selectedOption by remember { mutableStateOf(selectedTime) }
 
     Column(
         modifier = Modifier
@@ -138,7 +141,7 @@ fun AutoRemoveDialogContent(
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                selectedTimeLong = when (selectedOption) {
+                val selectedTimeLong = when (selectedOption) {
                     context.getString(R.string.never) -> 0L
                     context.getString(R.string.one_hour) -> 3600000L
                     context.getString(R.string.one_day) -> 86400000L
@@ -148,12 +151,11 @@ fun AutoRemoveDialogContent(
                     else -> 0L
                 }
 
-                runBlocking {
+                scope.launch {
                     settingsViewModel.updateSettings(AppSettingsEntity(0, selectedTimeLong, selectedOption))
+                    onTimeSelected(selectedOption)
+                    onDismiss()
                 }
-
-                onTimeSelected(selectedOption)
-                onDismiss()
             }
         ) {
             Text(stringResource(id = R.string.select), color = Color.White,)

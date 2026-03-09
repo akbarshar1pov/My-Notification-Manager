@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,18 +61,19 @@ fun ConversationsScreen(
         topBar = {
             TopBarContent(
                 title =  appName,
-                icon = Icons.Default.ArrowBack,
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
                 appIcon = appIconDrawable,
                 onNavigationClick = { navController.navigateUp() }
             )
         },
-    ) {
+    ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 

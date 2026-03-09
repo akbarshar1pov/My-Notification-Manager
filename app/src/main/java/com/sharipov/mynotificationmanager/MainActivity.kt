@@ -1,17 +1,12 @@
 package com.sharipov.mynotificationmanager
 
-import android.app.Activity
-import android.content.Intent
 import android.content.IntentSender
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,19 +37,10 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var appUpdateManager: AppUpdateManager
     private val updateType = AppUpdateType.FLEXIBLE
-    private lateinit var someActivityResultLauncher: ActivityResultLauncher<Intent>
 
-    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        someActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                result.data
-            } else {
-                println("Something went wrong...")
-            }
-        }
-
         appUpdateManager = AppUpdateManagerFactory.create(applicationContext)
         appUpdateManager.registerListener(installStateUpdateListener)
         checkForAppUpdate()
@@ -111,11 +97,10 @@ class MainActivity : ComponentActivity() {
                 "Download successfully. Restarting app in 5 seconds...",
                 Toast.LENGTH_LONG
             ).show()
-            val job = lifecycleScope.launch {
+            lifecycleScope.launch {
                 delay(5.seconds)
                 appUpdateManager.completeUpdate()
             }
-            job.cancel()
         }
     }
 

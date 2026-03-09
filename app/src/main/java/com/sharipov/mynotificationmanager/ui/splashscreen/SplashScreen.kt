@@ -11,7 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,13 +24,10 @@ import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.data.ThemePreferences
 import com.sharipov.mynotificationmanager.navigation.Screens
 import com.sharipov.mynotificationmanager.utils.TransparentSystemBars
-import com.sharipov.mynotificationmanager.utils.UpdateApplicationList
+import com.sharipov.mynotificationmanager.utils.updateApplicationList
 import com.sharipov.mynotificationmanager.viewmodel.HomeViewModel
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
@@ -38,24 +36,23 @@ fun SplashScreen(
     settingsViewModel: SettingsViewModel
 ) {
     val context = LocalContext.current
-    var startAnimate by remember { mutableStateOf(false) }
-    UpdateApplicationList(settingsViewModel = settingsViewModel)
     TransparentSystemBars()
 
     Splash(context)
 
-    LaunchedEffect(key1 = true) {
-        startAnimate = true
+    LaunchedEffect(Unit) {
+        updateApplicationList(context, settingsViewModel)
         delay(1500)
         val autoDeleteTimeout = settingsViewModel.getAppSettings()?.autoDeleteTimeoutLong ?: 0L
         if (autoDeleteTimeout != 0L) {
             val currentTime = System.currentTimeMillis()
             val deleteThreshold = currentTime - autoDeleteTimeout
-            CoroutineScope(Dispatchers.IO).launch {
-                homeViewModel.deleteExpiredNotification(deleteThreshold)
-            }
+            homeViewModel.deleteExpiredNotification(deleteThreshold)
         }
-        navController.navigate(Screens.Permissions.route)
+        navController.navigate(Screens.Permissions.route) {
+            popUpTo(Screens.Splash.route) { inclusive = true }
+            launchSingleTop = true
+        }
     }
 }
 
@@ -69,10 +66,9 @@ fun Splash(context: Context) {
     val animation = if(!useDarkAnimation)LottieCompositionSpec.RawRes(resId = R.raw.animation_dark)
     else LottieCompositionSpec.RawRes(resId = R.raw.animation_light)
 
-    val composition by rememberLottieComposition(
+    val composition = rememberLottieComposition(
         spec = animation
-    )
-    val isPlaying by remember { mutableStateOf(true) }
+    ).value
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -85,7 +81,7 @@ fun Splash(context: Context) {
             LottieAnimation(
                 modifier = sizeModifier,
                 composition = composition,
-                isPlaying = isPlaying,
+                isPlaying = true,
                 restartOnPlay = true
             )
 

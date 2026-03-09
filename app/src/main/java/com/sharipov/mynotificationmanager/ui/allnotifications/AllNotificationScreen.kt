@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FabPosition
@@ -39,9 +40,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.model.NotificationEntity
 import com.sharipov.mynotificationmanager.navigation.Screens
+import com.sharipov.mynotificationmanager.ui.allnotifications.component.FilterSheet
 import com.sharipov.mynotificationmanager.ui.allnotifications.component.MyFloatingActionButton
 import com.sharipov.mynotificationmanager.ui.allnotifications.component.NotificationItem
-import com.sharipov.mynotificationmanager.ui.allnotifications.component.filterSheet
 import com.sharipov.mynotificationmanager.ui.bottombarcomponent.BottomBar
 import com.sharipov.mynotificationmanager.ui.topbarscomponent.SearchTopBarContent
 import com.sharipov.mynotificationmanager.utils.Constants
@@ -50,6 +51,7 @@ import com.sharipov.mynotificationmanager.utils.dateConverter
 import com.sharipov.mynotificationmanager.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @SuppressLint(
@@ -66,17 +68,28 @@ fun AllNotificationScreen(
     var showSearch by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var showStatistic by remember { mutableStateOf(false) }
-    var data by remember { mutableStateOf("") }
     var fromDate by remember { mutableStateOf("") }
     var toDate by remember { mutableStateOf("") }
     val currentNavBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute =
         currentNavBackStackEntry?.destination?.route ?: Constants.Screens.APPLICATION_SCREEN
     var searchText by remember { mutableStateOf("") }
+    val allNotifications by homeViewModel.notificationListFlow.collectAsState(emptyList())
+    val selectedNotificationsFlow = remember(homeViewModel, searchText, fromDate, toDate) {
+        when {
+            searchText.isNotBlank() -> homeViewModel.searchNotifications(searchText)
+            fromDate.isNotBlank() || toDate.isNotBlank() -> {
+                val fromDateLongValue = dateConverter("from", fromDate)
+                val toDateLongValue = dateConverter("to", toDate)
+                homeViewModel.getNotificationsFromData(fromDateLongValue, toDateLongValue)
+            }
+            else -> homeViewModel.notificationListFlow
+        }
+    }
+    val notificationFlow by selectedNotificationsFlow.collectAsState(emptyList())
+    val dates = remember { getWeekDays() }
+    val weeklyData = remember(allNotifications) { getWeeklyCounts(allNotifications) }
 
-    val notificationFlow = getNotificationFlow(homeViewModel, searchText, fromDate, toDate)
-    val dates = getWeekDays()
-    val dummyData = getDummy(homeViewModel)
 
     TransparentSystemBars()
 
@@ -106,13 +119,14 @@ fun AllNotificationScreen(
             )
         },
         floatingActionButtonPosition = FabPosition.End
-    ) {
+    ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.padding(32.dp))
             if (!showSearch) {
                 Card(
                     modifier = Modifier
@@ -125,7 +139,7 @@ fun AllNotificationScreen(
                 ) {
                     val statisticText =
                         "${stringResource(id = R.string.count_of_your_notification)} ${
-                            if (!showStatistic) notificationFlow.size else dummyData.sum()
+                            if (!showStatistic) notificationFlow.size else weeklyData.sum()
                         }"
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -137,12 +151,10 @@ fun AllNotificationScreen(
                         AnimatedVisibility(
                             visible = showStatistic
                         ) {
-                            BarChart(dates, dummyData)
+                            BarChart(dates, weeklyData)
                         }
                     }
                 }
-            } else {
-                Spacer(modifier = Modifier.padding(32.dp))
             }
 
             AnimatedVisibility(
@@ -151,8 +163,12 @@ fun AllNotificationScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(notificationFlow.size) { index ->
-                        val notification = notificationFlow[index]
+                    items(
+                        items = notificationFlow,
+                        key = { notification ->
+                            notification.id ?: "${notification.packageName}_${notification.time}_${notification.text.hashCode()}"
+                        }
+                    ) { notification ->
                         NotificationItem(
                             homeViewModel = homeViewModel,
                             notification = notification,
@@ -160,15 +176,22 @@ fun AllNotificationScreen(
                             context = context,
                         )
                     }
-                    item { Spacer(modifier = Modifier.height(156.dp)) }
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
             }
-            data = filterSheet(showFilters) { showFilters = false }
-            val dateRange = data.split(":")
-            fromDate = dateRange.getOrElse(0) { "" }
-            toDate = dateRange.getOrElse(1) { "" }
         }
     }
+
+    FilterSheet(
+        showFilters = showFilters,
+        fromDate = fromDate,
+        toDate = toDate,
+        onDismiss = { showFilters = false },
+        onDatesChanged = { newFromDate, newToDate ->
+            fromDate = newFromDate
+            toDate = newToDate
+        }
+    )
 }
 
 //@Composable
@@ -184,36 +207,17 @@ fun AllNotificationScreen(
 //    }
 //}
 
-@Composable
-fun getDummy(homeViewModel: HomeViewModel): List<Int> {
+fun getWeeklyCounts(notifications: List<NotificationEntity>): List<Int> {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -7) }
-    return (0..6).map {
+    val countsByDay = notifications
+        .groupingBy { notification -> dateFormat.format(Date(notification.time)) }
+        .eachCount()
+    val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -6) }
+
+    return List(7) {
+        val day = dateFormat.format(calendar.time)
         calendar.add(Calendar.DAY_OF_MONTH, 1)
-        val data = dateFormat.format(calendar.time)
-        getNotificationFlow(homeViewModel, "", data, data).size
-    }
-}
-
-@Composable
-fun getNotificationFlow(
-    homeViewModel: HomeViewModel,
-    searchText: String,
-    fromDate: String,
-    toDate: String
-): List<NotificationEntity> {
-    return when {
-        searchText.isNotBlank() -> homeViewModel.searchNotifications(searchText)
-            .collectAsState(emptyList()).value
-
-        fromDate.isNotBlank() || toDate.isNotBlank() -> {
-            val fromDateLongValue = dateConverter("from", fromDate)
-            val toDateLongValue = dateConverter("to", toDate)
-            homeViewModel.getNotificationsFromData(fromDateLongValue, toDateLongValue)
-                .collectAsState(emptyList()).value
-        }
-
-        else -> homeViewModel.notificationListFlow.collectAsState(emptyList()).value
+        countsByDay[day] ?: 0
     }
 }
 

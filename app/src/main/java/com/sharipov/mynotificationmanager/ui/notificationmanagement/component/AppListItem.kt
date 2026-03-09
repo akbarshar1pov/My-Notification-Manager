@@ -12,16 +12,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewModelScope
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.sharipov.mynotificationmanager.model.ExcludedAppEntity
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun AppListItem(
@@ -30,7 +30,14 @@ fun AppListItem(
     whichListIsDisplayed: Boolean = true,
     appEntity: ExcludedAppEntity
 ) {
-    var isChecked = if(whichListIsDisplayed) appEntity.isExcluded else appEntity.isBlocked
+    var isChecked by remember(
+        appEntity.id,
+        whichListIsDisplayed,
+        appEntity.isExcluded,
+        appEntity.isBlocked
+    ) {
+        mutableStateOf(if (whichListIsDisplayed) appEntity.isExcluded else appEntity.isBlocked)
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -53,16 +60,12 @@ fun AppListItem(
             checked = isChecked,
             onCheckedChange = { newValue ->
                 isChecked = newValue
-                settingsViewModel.viewModelScope.launch {
-                    val newAppEntity = if (whichListIsDisplayed) {
-                        appEntity.copy(isExcluded = newValue)
-                    } else {
-                        appEntity.copy(isBlocked = newValue)
-                    }
-                    withContext(Dispatchers.IO) {
-                        settingsViewModel.updateExcludedApp(newAppEntity)
-                    }
+                val newAppEntity = if (whichListIsDisplayed) {
+                    appEntity.copy(isExcluded = newValue)
+                } else {
+                    appEntity.copy(isBlocked = newValue)
                 }
+                settingsViewModel.updateExcludedApp(newAppEntity)
             }
         )
     }

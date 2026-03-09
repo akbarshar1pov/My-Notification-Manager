@@ -1,6 +1,7 @@
 package com.sharipov.mynotificationmanager.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -20,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,19 +34,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.content.ContextCompat.startActivity
-import androidx.core.os.bundleOf
 import androidx.navigation.NavController
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import com.sharipov.mynotificationmanager.R
 import com.sharipov.mynotificationmanager.utils.Constants
+import com.sharipov.mynotificationmanager.utils.TransparentSystemBars
 
 @Composable
 fun PermissionScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
+    val permission = getPermissionList()
+
+    TransparentSystemBars()
+
+    LaunchedEffect(permission) {
+        if (permission.all { !it.second }) {
+            navController.navigate(Constants.Screens.ALL_NOTIFICATIONS_SCREEN) {
+                popUpTo(Constants.Screens.PERMISSIONS_SCREEN) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -71,10 +85,6 @@ fun PermissionScreen(
                 .padding(16.dp)
                 .fillMaxWidth()
         )
-        val permission = getPermissionList()
-        if(permission.all { !it.second }) {
-            navController.navigate(Constants.Screens.ALL_NOTIFICATIONS_SCREEN)
-        }
         for (i in permission) {
             if(i.second) {
                 when (i.first) {
@@ -95,11 +105,10 @@ fun PermissionScreen(
 
         Button(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            .fillMaxWidth()
+            .padding(16.dp),
             onClick = {
                 getPermission(context)
-                navController.navigate(Constants.Screens.ALL_NOTIFICATIONS_SCREEN)
             },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
@@ -136,7 +145,7 @@ fun isBatteryOptimizationIgnored(context: Context): Boolean {
 fun requestBatteryOptimization(context: Context) {
     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
     intent.data = Uri.parse("package:${context.packageName}")
-    startActivity(context, intent, bundleOf())
+    context.launchSettingsIntent(intent)
 }
 
 fun getPermission(context: Context) {
@@ -146,11 +155,18 @@ fun getPermission(context: Context) {
 
     if (notificationListener) {
         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-        startActivity(context, intent, bundleOf())
+        context.launchSettingsIntent(intent)
     }
     if (batteryOptimizationIgnore) {
         requestBatteryOptimization(context)
     }
+}
+
+private fun Context.launchSettingsIntent(intent: Intent) {
+    if (this !is Activity) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    startActivity(intent)
 }
 
 

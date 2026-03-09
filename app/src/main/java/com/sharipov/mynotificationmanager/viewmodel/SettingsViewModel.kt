@@ -1,13 +1,12 @@
 package com.sharipov.mynotificationmanager.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.sharipov.mynotificationmanager.data.repository.AppSettingsRepository
 import com.sharipov.mynotificationmanager.data.repository.ExcludedAppRepository
 import com.sharipov.mynotificationmanager.model.AppSettingsEntity
 import com.sharipov.mynotificationmanager.model.ExcludedAppEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,8 +42,6 @@ class SettingsViewModel
     private val excludedAppRepository: ExcludedAppRepository
 ): ViewModel(), SettingsViewModelAbstract  {
 
-    private val ioScope = CoroutineScope(Dispatchers.IO)
-
     override suspend fun saveAppSettings(settings: AppSettingsEntity) {
         appSettingsRepository.saveAppSettings(settings)
     }
@@ -64,27 +61,27 @@ class SettingsViewModel
         return excludedAppRepository.searchApplication(query)
     }
     override fun addExcludedApp(app: ExcludedAppEntity) {
-        ioScope.launch {
+        viewModelScope.launch {
             excludedAppRepository.addExcludedApp(app)
         }
     }
     override fun updateExcludedApp(app: ExcludedAppEntity) {
-        ioScope.launch {
+        viewModelScope.launch {
             excludedAppRepository.updateExcludedApp(app = app)
         }
     }
     override fun deleteExcludedAppByPackageName(packageName: String) {
-        ioScope.launch {
+        viewModelScope.launch {
             excludedAppRepository.deleteExcludedAppByPackageName(packageName = packageName)
         }
     }
     override fun setExcludedStatusForAllNotifications(isExcluded: Boolean) {
-        ioScope.launch {
+        viewModelScope.launch {
             excludedAppRepository.setExcludedStatusForAllNotifications(isExcluded)
         }
     }
     override fun setBlockedStatusForAllNotifications(isBlocked: Boolean) {
-        ioScope.launch {
+        viewModelScope.launch {
             excludedAppRepository.setBlockedStatusForAllNotifications(isBlocked)
         }
     }

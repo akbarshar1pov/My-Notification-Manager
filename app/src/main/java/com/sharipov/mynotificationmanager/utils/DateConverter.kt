@@ -1,27 +1,30 @@
 package com.sharipov.mynotificationmanager.utils
 
-import android.os.Build
-import androidx.annotation.RequiresApi
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun dateConverter(type: String, date: String):Long? {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    return if (date != "") {
-        val fromDateLocalDate: LocalDate
-        val fromDateTime: Instant
-        if(type == "to"){
-            fromDateLocalDate = LocalDate.parse(date, formatter).plusDays(1)
-            fromDateTime = fromDateLocalDate.atStartOfDay(ZoneId.systemDefault()).plusSeconds(-1).toInstant()
-        }else {
-            fromDateLocalDate = LocalDate.parse(date, formatter)
-            fromDateTime = fromDateLocalDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        }
-        fromDateTime.toEpochMilli()
-    } else{
-        null
+fun dateConverter(type: String, date: String): Long? {
+    if (date.isBlank()) {
+        return null
     }
+
+    val parsedDate = runCatching {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(date)
+    }.getOrNull() ?: return null
+
+    val calendar = Calendar.getInstance().apply {
+        time = parsedDate
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    if (type == "to") {
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+        calendar.add(Calendar.MILLISECOND, -1)
+    }
+
+    return calendar.timeInMillis
 }

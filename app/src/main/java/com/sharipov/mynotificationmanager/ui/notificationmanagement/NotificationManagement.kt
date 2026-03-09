@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.sharipov.mynotificationmanager.ui.bottombarcomponent.BottomBar
@@ -52,12 +53,14 @@ fun NotificationManagement(
     val whichListIsDisplayed = remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
-
-    val apps = if (searchQuery.isNotBlank()) {
-        settingsViewModel.searchApplication(searchQuery).collectAsState(emptyList()).value
-    } else {
-        settingsViewModel.getAllExcludedApps().collectAsState(emptyList()).value
+    val appsFlow = remember(settingsViewModel, searchQuery) {
+        if (searchQuery.isNotBlank()) {
+            settingsViewModel.searchApplication(searchQuery)
+        } else {
+            settingsViewModel.getAllExcludedApps()
+        }
     }
+    val apps by appsFlow.collectAsState(emptyList())
 
     TransparentSystemBars()
 
@@ -81,20 +84,14 @@ fun NotificationManagement(
                 navigateToNotificationManagement = { navController.navigate(Screens.NotificationManagement.route) },
             )
         },
-    ) {
+    ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(64.dp))
-
-            AnimatedVisibility(
-                visible = searchVisible
-            ) {
-                Spacer(modifier = Modifier.padding(36.dp))
-            }
-
             ToggleDisplayMode(whichListIsDisplayed)
 
             LazyColumn(
@@ -117,7 +114,11 @@ fun NotificationManagement(
                     AllApplication(settingsViewModel, whichListIsDisplayed.value)
                 }
                 items(apps) { app ->
-                    val icon = context.packageManager.getApplicationIcon(app.packageName)
+                    val icon = runCatching {
+                        context.packageManager.getApplicationIcon(app.packageName)
+                    }.getOrElse {
+                        ContextCompat.getDrawable(context, R.drawable.ic_android)
+                    } ?: return@items
                     AppListItem(
                         settingsViewModel = settingsViewModel,
                         icon = icon,
@@ -126,10 +127,8 @@ fun NotificationManagement(
                     )
                     HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                 }
-                item { Spacer(modifier = Modifier.height(60.dp)) }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
 }
-
-

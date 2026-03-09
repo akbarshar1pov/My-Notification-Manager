@@ -63,16 +63,16 @@ fun ApplicationsScreen(
                 navigateToNotificationManagement = { navController.navigate(Screens.NotificationManagement.route) },
             )
         }
-    ) {
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding(),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
             LazyColumn(
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item { Spacer(modifier = Modifier.padding(8.dp)) }
@@ -95,7 +95,7 @@ fun ApplicationsScreen(
                             }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(78.dp)) }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }

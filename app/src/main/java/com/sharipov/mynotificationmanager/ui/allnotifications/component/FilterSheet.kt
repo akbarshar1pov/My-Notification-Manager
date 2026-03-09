@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,32 +32,37 @@ import com.maxkeppeler.sheets.calendar.CalendarDialog
 import com.maxkeppeler.sheets.calendar.models.CalendarConfig
 import com.maxkeppeler.sheets.calendar.models.CalendarSelection
 import com.sharipov.mynotificationmanager.R
-import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun filterSheet(
+fun FilterSheet(
     showFilters: Boolean,
-    showFiltersValue: () -> Unit,
-): String {
-    val sheetState = rememberSheetState()
-    val scope = rememberCoroutineScope()
+    fromDate: String,
+    toDate: String,
+    onDismiss: () -> Unit,
+    onDatesChanged: (String, String) -> Unit,
+) {
     val fromDataCalendarState = rememberSheetState()
     val toDataCalendarState = rememberSheetState()
-    val fromDate = remember { mutableStateOf("") }
-    val toDate = remember { mutableStateOf("") }
+    val fromDateState = remember(showFilters) { mutableStateOf(fromDate) }
+    val toDateState = remember(showFilters) { mutableStateOf(toDate) }
 
     if (showFilters) {
         ModalBottomSheet(
-            onDismissRequest = {
-                scope.launch {
-                    sheetState.hide()
-                }
-                showFiltersValue()
-            },
+            onDismissRequest = onDismiss,
         ) {
-            BottomSheetContent(fromDataCalendarState, toDataCalendarState, fromDate, toDate)
+            BottomSheetContent(
+                fromDataCalendarState = fromDataCalendarState,
+                toDataCalendarState = toDataCalendarState,
+                fromDate = fromDateState,
+                toDate = toDateState,
+                onReset = {
+                    fromDateState.value = ""
+                    toDateState.value = ""
+                    onDatesChanged("", "")
+                }
+            )
         }
     }
 
@@ -69,7 +73,8 @@ fun filterSheet(
             yearSelection = true
         ),
         selection = CalendarSelection.Date { date ->
-            fromDate.value = date.toString()
+            fromDateState.value = date.toString()
+            onDatesChanged(fromDateState.value, toDateState.value)
         }
     )
 
@@ -80,18 +85,19 @@ fun filterSheet(
             yearSelection = true
         ),
         selection = CalendarSelection.Date { date ->
-            toDate.value = date.toString()
+            toDateState.value = date.toString()
+            onDatesChanged(fromDateState.value, toDateState.value)
         }
     )
-    return "${fromDate.value}:${toDate.value}"
 }
 
 @Composable
 fun BottomSheetContent(
     fromDataCalendarState: SheetState,
     toDataCalendarState: SheetState,
-    fromDate: MutableState<String>,
-    toDate: MutableState<String>,
+    fromDate: androidx.compose.runtime.MutableState<String>,
+    toDate: androidx.compose.runtime.MutableState<String>,
+    onReset: () -> Unit,
 ){
 
     Column(
@@ -112,7 +118,7 @@ fun BottomSheetContent(
             color = MaterialTheme.colorScheme.primary
         )
 
-        DataPicker(fromDataCalendarState, toDataCalendarState, fromDate, toDate)
+        DataPicker(fromDataCalendarState, toDataCalendarState, fromDate, toDate, onReset)
 
         HorizontalDivider(
             thickness = 2.dp,
@@ -127,7 +133,8 @@ fun DataPicker(
     fromDataCalendarState: SheetState,
     toDataCalendarState: SheetState,
     fromDate: MutableState<String>,
-    toDate: MutableState<String>
+    toDate: MutableState<String>,
+    onReset: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -151,10 +158,7 @@ fun DataPicker(
             Button(
                 modifier = Modifier
                     .wrapContentSize(),
-                onClick = {
-                    toDate.value = ""
-                    fromDate.value = ""
-                }
+                onClick = onReset
             ) {
                 Text(stringResource(id = R.string.reset), color = Color.White)
             }

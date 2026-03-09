@@ -62,19 +62,14 @@ fun ChatScreen(
                 onSearchTextChange = { searchText = it }
             )
         },
-        content = {
+        content = { innerPadding ->
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                Spacer(modifier = Modifier.height(64.dp))
-                AnimatedVisibility(
-                    visible = searchVisible
-                ) {
-                    Spacer(modifier = Modifier.padding(32.dp))
-                }
                 AnimatedVisibility(
                     visible = !searchVisible || searchText.isNotEmpty(),
                 ) {

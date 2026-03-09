@@ -32,7 +32,7 @@ fun AllApplication(
     settingsViewModel: SettingsViewModel,
     whichListIsDisplayed: Boolean
 ) {
-    var isChecked by remember { mutableStateOf(false) }
+    var isChecked by remember(whichListIsDisplayed) { mutableStateOf(false) }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

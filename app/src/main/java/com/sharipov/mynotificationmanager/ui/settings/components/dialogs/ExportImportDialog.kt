@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +46,7 @@ import com.sharipov.mynotificationmanager.utils.getFileNameFromUri
 import com.sharipov.mynotificationmanager.utils.importDatabase
 import com.sharipov.mynotificationmanager.utils.shareFile
 import com.sharipov.mynotificationmanager.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,8 +122,16 @@ fun ExportImportModalBottomSheetContent(context: Context, homeViewModel: HomeVie
 fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember { mutableStateOf("") }
-    var importStatus by remember{mutableStateOf(Pair(true, ""))}
-    var importButtonStatus by remember{mutableStateOf(true)}
+    var importStatus by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var importButtonStatus by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(importStatus) {
+        importStatus?.let { status ->
+            Toast.makeText(context, status.second, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Column(
         modifier = Modifier
             .wrapContentSize()
@@ -155,14 +165,16 @@ fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
                 enabled = selectedFileUri != null,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    importStatus = importDatabase(context, homeViewModel, selectedFileUri)
-                    importButtonStatus = !importStatus.first
+                    scope.launch {
+                        importStatus = importDatabase(context, homeViewModel, selectedFileUri)
+                        importButtonStatus = importStatus?.first != true
+                    }
                 }
             ) {
                 Text(text = stringResource(id = R.string.import_), color = Color.White)
             }
         }
-        if(importStatus.second != "") {
+        if (importStatus != null) {
             HorizontalDivider(
                 modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
                 color = MaterialTheme.colorScheme.primary,
@@ -173,12 +185,10 @@ fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
                 .align(alignment = Alignment.End)
             ) {
                 Text(text = stringResource(id = R.string.status) + " ")
-                if(importStatus.first) {
+                if (importStatus?.first == true) {
                     Text(text = stringResource(id = R.string.success), color = Color.Green)
-                    Toast.makeText(context,importStatus.second, Toast.LENGTH_SHORT).show()
                 } else {
                     Text(text = stringResource(id = R.string.no_done), color = Color.Red)
-                    Toast.makeText(context,importStatus.second, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -189,8 +199,19 @@ fun ImportScreen(context: Context, homeViewModel: HomeViewModel) {
 @SuppressLint("IntentReset")
 @Composable
 fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
-    var exportButtonStatus by remember{mutableStateOf(true)}
-    var exportStatus by remember{mutableStateOf(Pair(true, ""))}
+    var exportButtonStatus by remember { mutableStateOf(true) }
+    var exportStatus by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(exportStatus) {
+        exportStatus?.let { status ->
+            if (status.first) {
+                Toast.makeText(context, context.getString(R.string.data_backup_save_in), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, status.second, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -204,8 +225,10 @@ fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
                     .fillMaxWidth()
                     .padding(top = 16.dp, bottom = 16.dp),
                 onClick = {
-                    exportStatus = exportDatabase(context, homeViewModel)
-                    exportButtonStatus = !exportStatus.first
+                    scope.launch {
+                        exportStatus = exportDatabase(context, homeViewModel)
+                        exportButtonStatus = exportStatus?.first != true
+                    }
                 }
             ) {
                 Text(text = stringResource(id = R.string.export), color = Color.White)
@@ -222,18 +245,18 @@ fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
                     .align(alignment = Alignment.End)
                 ) {
                     Text(text = stringResource(id = R.string.status))
-                    if(exportStatus.first) {
+                    if (exportStatus?.first == true) {
                         Text(text = stringResource(id = R.string.success), color = Color.Green)
                     } else {
                         Text(text = stringResource(id = R.string.no_done), color = Color.Red)
                     }
                 }
-                if(exportStatus.first) {
+                if (exportStatus?.first == true) {
                     Column {
                         Row{
                             Text(text = stringResource(id = R.string.file_name))
                             Text(
-                                text = "${exportStatus.second}_backup.json",
+                                text = exportStatus?.second.orEmpty(),
                                 modifier = Modifier.basicMarquee(),
                                 maxLines = 1
                             )
@@ -241,7 +264,7 @@ fun ExportScreen(context: Context, homeViewModel: HomeViewModel) {
                         Button(
                             modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp),
                             onClick = {
-                                shareFile(context = context, fileName = "${exportStatus.second}_backup.json")
+                                shareFile(context = context, fileName = exportStatus?.second.orEmpty())
                             }
                         ) {
                             Text(text = stringResource(id = R.string.share), color = Color.White)

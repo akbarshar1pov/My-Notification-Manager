@@ -30,14 +30,17 @@ abstract class AppDatabase :RoomDatabase() {
     abstract fun excludedAppDao(): ExcludedAppDao
 
     companion object {
+        @Volatile
         private var INSTANCE: AppDatabase? = null
+
         fun getInstance(context: Context): AppDatabase {
-            if (INSTANCE == null) {
-                INSTANCE = Room.databaseBuilder(context, AppDatabase::class.java, "notification.db")
-                    .fallbackToDestructiveMigration()
-                    .build()
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "notification.db"
+                ).build().also { INSTANCE = it }
             }
-            return INSTANCE as AppDatabase
         }
     }
 }

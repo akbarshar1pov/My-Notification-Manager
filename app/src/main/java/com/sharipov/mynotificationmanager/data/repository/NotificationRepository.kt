@@ -43,6 +43,8 @@ class NotificationRepository(
         notificationDao.deleteExpiredNotification(autoDeleteTimeout)
     suspend fun insert(notification: NotificationEntity) =
         notificationDao.insert(notification)
+    suspend fun insertImportedNotifications(notifications: List<NotificationEntity>) =
+        notificationDao.insertImportedNotifications(notifications)
     suspend fun upgrade(notification: NotificationEntity) =
         notificationDao.update(notification)
     suspend fun delete(notification: NotificationEntity) =

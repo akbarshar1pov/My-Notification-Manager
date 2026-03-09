@@ -13,7 +13,7 @@ interface ExcludedAppDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addExcludedApp(excludedApp: ExcludedAppEntity)
 
-    @Query("SELECT * FROM excluded_apps '%' ORDER BY appName ASC")
+    @Query("SELECT * FROM excluded_apps ORDER BY appName ASC")
     fun getAllExcludedApps(): Flow<List<ExcludedAppEntity>>
 
     @Query("SELECT * FROM excluded_apps WHERE packageName = :packageName")

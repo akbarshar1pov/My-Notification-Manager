@@ -1,38 +1,40 @@
 package com.sharipov.mynotificationmanager.utils
 
+import android.content.Context
 import android.content.pm.PackageManager
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.room.Transaction
 import com.sharipov.mynotificationmanager.model.ExcludedAppEntity
 import com.sharipov.mynotificationmanager.viewmodel.SettingsViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
-@Composable
-fun UpdateApplicationList(settingsViewModel: SettingsViewModel) {
-    val context = LocalContext.current
+suspend fun updateApplicationList(
+    context: Context,
+    settingsViewModel: SettingsViewModel
+) = withContext(Dispatchers.IO) {
     val packageManager = context.packageManager
     val apps = packageManager.getInstalledPackages(0)
-    val appListFromSource = mutableListOf<ExcludedAppEntity>()
+    val appListFromSource = buildList {
+        apps.forEach { packageInfo ->
+            val appName = runCatching {
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(packageInfo.packageName, PackageManager.GET_META_DATA)
+                ).toString()
+            }.getOrDefault(packageInfo.packageName)
 
-    for (i in apps) {
-        val appName =
-            packageManager.getApplicationLabel(
-                packageManager.getApplicationInfo(i.packageName, PackageManager.GET_META_DATA)
-            ).toString()
+            add(
+                ExcludedAppEntity(
+                    packageName = packageInfo.packageName,
+                    appName = appName,
+                    isExcluded = true,
+                    isBlocked = false
+                )
+            )
+        }
+    }
 
-        val app = ExcludedAppEntity(
-            packageName = i.packageName.toString(),
-            appName = appName,
-            isExcluded = true,
-            isBlocked = false
-        )
-        appListFromSource.add(app)
-    }
-    runBlocking {
-        syncAppList(appListFromSource, settingsViewModel)
-    }
+    syncAppList(appListFromSource, settingsViewModel)
 }
 
 @Transaction
@@ -42,8 +44,9 @@ suspend fun syncAppList(appListFromSource: List<ExcludedAppEntity>, settingsView
         appListFromDatabase.none { it.packageName == app.packageName }
     }
     if (missingApps.isNotEmpty()) {
-        for(i in missingApps)
+        for (i in missingApps) {
             settingsViewModel.addExcludedApp(i)
+        }
     }
     val appsToRemove = appListFromDatabase.filter { app ->
         appListFromSource.none { it.packageName == app.packageName }

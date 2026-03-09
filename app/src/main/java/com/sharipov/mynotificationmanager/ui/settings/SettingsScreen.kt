@@ -80,13 +80,13 @@ fun SettingsScreen(
                 navigateToNotificationManagement = { navController.navigate(Screens.NotificationManagement.route) },
             )
         },
-    ) {
+    ) { innerPadding ->
         LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             userScrollEnabled = true
         ) {
-
-            item { Spacer(modifier = Modifier.height(76.dp)) }
-
             item {
                 ClickableListItem(
                     text = stringResource(id = R.string.automatic_deletion_of_notifications),
@@ -151,7 +151,7 @@ fun SettingsScreen(
                 )
             }
             item {
-                Spacer(modifier = Modifier.padding(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
         val context = LocalContext.current

@@ -3,18 +3,23 @@ package com.sharipov.mynotificationmanager.utils
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun TransparentSystemBars() {
     val systemUiController = rememberSystemUiController()
-    val systemBarsBackgroundColor =  MaterialTheme.colorScheme.primary
-    val navigationBarsBackgroundColor = MaterialTheme.colorScheme.background
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val useDarkIcons = backgroundColor.luminance() > 0.5f
     SideEffect {
-        systemUiController.setSystemBarsColor(
-            color = systemBarsBackgroundColor,
-            darkIcons = false
+        systemUiController.setStatusBarColor(
+            color = Color.Transparent,
+            darkIcons = useDarkIcons
         )
-        systemUiController.setNavigationBarColor(navigationBarsBackgroundColor)
+        systemUiController.setNavigationBarColor(
+            color = Color.Transparent,
+            darkIcons = useDarkIcons
+        )
     }
 }

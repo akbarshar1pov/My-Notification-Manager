@@ -111,6 +111,21 @@ interface NotificationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(notification: NotificationEntity)
 
+    @Transaction
+    suspend fun insertImportedNotifications(notifications: List<NotificationEntity>) {
+        notifications.forEach { notification ->
+            val exists = checkNotificationExists(
+                user = notification.user,
+                text = notification.text,
+                packageName = notification.packageName,
+                appName = notification.appName
+            )
+            if (exists == 0) {
+                insert(notification.copy(id = null))
+            }
+        }
+    }
+
     // Update an existing notification
     @Update
     suspend fun update(notification: NotificationEntity)

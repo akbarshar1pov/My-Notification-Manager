@@ -31,7 +31,9 @@ fun BottomBar(
         Constants.Screens.SETTINGS_SCREEN to painterResource(id = R.drawable.ic_settings),
     )
     NavigationBar(
-        modifier = Modifier.fillMaxWidth().size(62.dp).shadow(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(16.dp),
         containerColor = MaterialTheme.colorScheme.background
     ) {
         items.forEach { data ->
